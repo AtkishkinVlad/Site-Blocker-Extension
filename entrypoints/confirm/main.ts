@@ -9,9 +9,16 @@ urlEl.textContent = decodeURIComponent(targetUrl);
 console.log('Confirm - tabId:', tabId, 'url:', targetUrl);
 
 btnEl.addEventListener('click', () => {
-  console.log('Click - updating tab:', tabId, 'to URL:', decodeURIComponent(targetUrl));
-  
   const url = decodeURIComponent(targetUrl);
-  chrome.tabs.update(Number(tabId), { url });
-  window.close();
+  console.log('Click! URL:', url);
+  
+  browser.runtime.sendMessage({
+    action: 'navigate',
+    url: url,
+    originalTabId: tabId
+  });
+  
+  setTimeout(() => {
+    window.close();
+  }, 500);
 });

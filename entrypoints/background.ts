@@ -1,5 +1,3 @@
-const STORAGE_KEY = 'blockedSites';
-
 function urlMatchesBlocked(url: string, blockedSites: string[]): boolean {
   try {
     const urlObj = new URL(url);
@@ -38,27 +36,31 @@ export default defineBackground(() => {
     const url = details.url;
     const tabId = details.tabId;
 
-    console.log('[BG] onBeforeNavigate:', url, 'tabId:', tabId);
-
     if (!tabId) return;
-    if (!url.startsWith('http')) return;
-    
-    if (url.includes('confirm.html')) {
-      console.log('[BG] Skipping confirm.html');
-      return;
-    }
+    if (!url.startsWith('http') && !url.startsWith('https')) return;
+    if (url.includes('confirm.html')) return;
 
-    const result = await browser.storage.local.get(STORAGE_KEY);
-    const sites: string[] = result[STORAGE_KEY] || [];
-
+    const result = await browser.storage.local.get('blockedSites');
+    const sites: string[] = result['blockedSites'] || [];
     if (sites.length === 0) return;
 
     if (urlMatchesBlocked(url, sites)) {
-      console.log('[BG] Blocking URL:', url);
+      console.log('[BG] Blocking:', url);
       const encodedUrl = encodeURIComponent(url);
       const confirmUrl = `confirm.html?tabId=${tabId}&url=${encodedUrl}`;
-      console.log('[BG] Redirecting to:', confirmUrl);
       await browser.tabs.update(tabId, { url: confirmUrl });
+    }
+  });
+
+  browser.runtime.onMessage.addListener(async (message, sender) => {
+    if (message.action === 'navigate') {
+      const url = message.url;
+      
+      browser.tabs.create({ url: url, active: true }).then((tab) => {
+        if (sender.tab?.id) {
+          browser.tabs.remove(sender.tab.id);
+        }
+      });
     }
   });
 });
