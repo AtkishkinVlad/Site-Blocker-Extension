@@ -56,27 +56,6 @@
       <div class="url" id="url"></div>
       <button id="confirm">Перейти</button>
     </div>
-    <script>
-      const params = new URLSearchParams(window.location.search);
-      const tabId = parseInt(params.get('tabId') || '0', 10);
-
-      async function init() {
-        const result = await browser.storage.local.get('pendingUrl');
-        document.getElementById('url').textContent = result.pendingUrl || 'Unknown';
-      }
-
-      init();
-
-      document.getElementById('confirm').addEventListener('click', async () => {
-        const result = await browser.storage.local.get('pendingUrl');
-        const url = result.pendingUrl;
-        
-        if (url && tabId) {
-          await browser.tabs.update(tabId, { url });
-        }
-        
-        window.close();
-      });
-    </script>
+    <script type="module" src="./main.ts"></script>
   </body>
 </html>

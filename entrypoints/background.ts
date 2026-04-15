@@ -1,5 +1,4 @@
 const STORAGE_KEY = 'blockedSites';
-const PENDING_URL_KEY = 'pendingUrl';
 
 function urlMatchesBlocked(url: string, blockedSites: string[]): boolean {
   try {
@@ -39,9 +38,15 @@ export default defineBackground(() => {
     const url = details.url;
     const tabId = details.tabId;
 
+    console.log('[BG] onBeforeNavigate:', url, 'tabId:', tabId);
+
     if (!tabId) return;
     if (!url.startsWith('http')) return;
-    if (url.includes('/confirm.html')) return;
+    
+    if (url.includes('confirm.html')) {
+      console.log('[BG] Skipping confirm.html');
+      return;
+    }
 
     const result = await browser.storage.local.get(STORAGE_KEY);
     const sites: string[] = result[STORAGE_KEY] || [];
@@ -49,9 +54,10 @@ export default defineBackground(() => {
     if (sites.length === 0) return;
 
     if (urlMatchesBlocked(url, sites)) {
-      console.log('[Site Blocker] Blocking:', url);
-      await browser.storage.local.set({ [PENDING_URL_KEY]: url });
-      const confirmUrl = `/confirm.html?tabId=${tabId}`;
+      console.log('[BG] Blocking URL:', url);
+      const encodedUrl = encodeURIComponent(url);
+      const confirmUrl = `confirm.html?tabId=${tabId}&url=${encodedUrl}`;
+      console.log('[BG] Redirecting to:', confirmUrl);
       await browser.tabs.update(tabId, { url: confirmUrl });
     }
   });
